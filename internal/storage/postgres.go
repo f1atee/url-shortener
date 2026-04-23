@@ -3,13 +3,13 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"github.com/lib/pq"
 )
+
+var ErrNotFound = fmt.Errorf("url not found")
 
 type Storage struct {
 	db *sql.DB
 }
-
 
 func New(dsn string) (*Storage, error) {
 	db, err := sql.Open("postgres", dsn)
@@ -48,6 +48,23 @@ func (s *Storage) GetURL(code string) (string, error) {
 		return "", fmt.Errorf("query url: %w", err)
 	}
 	return url, nil
+}
+
+func (s *Storage) DeleteURL(code string) error {
+	result, err := s.db.Exec("DELETE FROM urls WHERE code = $1", code)
+	if err != nil {
+		return fmt.Errorf("delete url: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
 func (s *Storage) Close() error {

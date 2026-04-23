@@ -9,6 +9,7 @@ import (
 	"github.com/f1atee/url-shortener/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
+
 type Handler struct {
 	store *storage.Storage
 }
@@ -71,4 +72,20 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, originalURL, http.StatusFound)
+}
+
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+
+	err := h.store.DeleteURL(code)
+	if err != nil {
+		if err == storage.ErrNotFound {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, `{"error":"internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
